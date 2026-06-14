@@ -463,10 +463,9 @@
 
 @media (max-width: 640px) {
   .listHeader { display: none; }
-  .colDate, .colDue, .colStatus { display: none; }
-  .colNum { width: 80px; }
+  .colNum, .colDate, .colDue, .colStatus { display: none; }
   .colAmount { width: 70px; }
-  .colActions { width: 144px; gap: 8px; }
+  .colActions { width: 136px; gap: 6px; }
   .actionBtn { width: 40px; height: 40px; border-radius: 8px; }
   .actionBtnDesktopOnly { display: none; }
   .fieldRow { grid-template-columns: 1fr; }
