@@ -10,26 +10,33 @@ const fmtDateShort = v => v ? new Intl.DateTimeFormat('en-GB', { day: 'numeric',
 
 function buildShareText(invoice, driver) {
   const lines = []
-  lines.push(`Invoice ${invoice.invoice_number}`)
-  if (driver?.name) lines.push(`From: ${driver.name}`)
-  lines.push(`To: ${invoice.customer_name}`)
-  lines.push(`Date: ${fmtDateShort(invoice.date)}`)
-  if (invoice.due_date) lines.push(`Due: ${fmtDateShort(invoice.due_date)}`)
+  lines.push(`*INVOICE ${invoice.invoice_number}*`)
+  lines.push('─────────────────────')
+  if (driver?.name) lines.push(`*From:* ${driver.name}`)
+  if (driver?.phone) lines.push(`*Tel:* ${driver.phone}`)
+  lines.push(`*To:* ${invoice.customer_name}`)
+  lines.push(`*Date:* ${fmtDateShort(invoice.date)}`)
+  if (invoice.due_date) lines.push(`*Due:* ${fmtDateShort(invoice.due_date)}`)
   if (invoice.invoice_items?.length > 0) {
     lines.push('')
+    lines.push('*Items:*')
     invoice.invoice_items.forEach(item => {
-      lines.push(`${item.description}: ${fmt(item.amount)}`)
+      lines.push(`  ${item.description}: ${fmt(item.amount)}`)
     })
   }
   lines.push('')
-  lines.push(`Total: ${fmt(invoice.total)}`)
+  lines.push(`*TOTAL: ${fmt(invoice.total)}*`)
   if (invoice.bank_name || invoice.bank_account_number) {
     lines.push('')
-    lines.push('Payment details:')
-    if (invoice.bank_name) lines.push(`Bank: ${invoice.bank_name}`)
-    if (invoice.bank_account_name) lines.push(`Account Name: ${invoice.bank_account_name}`)
-    if (invoice.bank_account_number) lines.push(`Account Number: ${invoice.bank_account_number}`)
-    if (invoice.bank_sort_code) lines.push(`Sort Code: ${invoice.bank_sort_code}`)
+    lines.push('*Payment details:*')
+    if (invoice.bank_name) lines.push(`  Bank: ${invoice.bank_name}`)
+    if (invoice.bank_account_name) lines.push(`  Account name: ${invoice.bank_account_name}`)
+    if (invoice.bank_account_number) lines.push(`  Account no: ${invoice.bank_account_number}`)
+    if (invoice.bank_sort_code) lines.push(`  Sort code: ${invoice.bank_sort_code}`)
+  }
+  if (invoice.notes) {
+    lines.push('')
+    lines.push(`_${invoice.notes}_`)
   }
   return lines.join('\n')
 }
