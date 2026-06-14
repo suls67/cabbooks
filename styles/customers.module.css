@@ -344,10 +344,14 @@
   margin-bottom: 16px;
 }
 
+.mobileDetails { display: none; }
+
 @media (max-width: 640px) {
   .listHeader { display: none; }
-  .colType, .colArea { display: none; }
-  .colContact { width: 100px; }
-  .colActions { width: 70px; }
+  .colType, .colArea, .colContact { display: none; }
+  .colActions { width: 80px; }
+  .actionBtn { width: 36px; height: 36px; }
+  .mobileDetails { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .mobileDetailItem { font-size: 0.8125rem; color: #6b7280; }
   .fieldRow { grid-template-columns: 1fr; }
 }

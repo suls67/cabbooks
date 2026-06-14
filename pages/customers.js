@@ -195,6 +195,11 @@ export default function Customers() {
                   <div>
                     <div className={styles.customerName}>{c.name}</div>
                     {c.email && <div className={styles.customerEmail}>{c.email}</div>}
+                    <div className={styles.mobileDetails}>
+                      <span className={`${styles.typeBadge} ${styles[`type${c.type.replace(/\s+/g, '')}`]}`}>{c.type}</span>
+                      {c.phone && <span className={styles.mobileDetailItem}>{c.phone}</span>}
+                      {c.area && <span className={styles.mobileDetailItem}>{c.area}</span>}
+                    </div>
                   </div>
                 </div>
                 <div className={styles.colType}>
