@@ -466,7 +466,9 @@
   .colDate, .colDue, .colStatus { display: none; }
   .colNum { width: 80px; }
   .colAmount { width: 70px; }
-  .colActions { width: 70px; }
+  .colActions { width: 144px; gap: 8px; }
+  .actionBtn { width: 40px; height: 40px; border-radius: 8px; }
+  .actionBtnDesktopOnly { display: none; }
   .fieldRow { grid-template-columns: 1fr; }
   .itemRow { flex-wrap: wrap; }
   .amountWrap { width: 100%; }

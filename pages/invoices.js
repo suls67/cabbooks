@@ -292,10 +292,10 @@ export default function Invoices() {
                 </div>
                 <div className={styles.colActions}>
                   {inv.status === 'draft' && (
-                    <button className={styles.actionBtn} onClick={() => handleStatusChange(inv, 'sent')} title="Mark as sent">✉</button>
+                    <button className={`${styles.actionBtn} ${styles.actionBtnDesktopOnly}`} onClick={() => handleStatusChange(inv, 'sent')} title="Mark as sent">✉</button>
                   )}
                   {inv.status === 'sent' && (
-                    <button className={styles.actionBtn} onClick={() => handleStatusChange(inv, 'paid')} title="Mark as paid">✓</button>
+                    <button className={`${styles.actionBtn} ${styles.actionBtnDesktopOnly}`} onClick={() => handleStatusChange(inv, 'paid')} title="Mark as paid">✓</button>
                   )}
                   <button className={styles.actionBtn} onClick={() => window.open(`/invoices/${inv.id}`, '_blank')} title="View / Print">
                     <PrintIcon />
