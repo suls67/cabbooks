@@ -2,8 +2,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { getCurrentDriver } from '../lib/driverAuth'
+import { useDriverCapabilities } from '../lib/driverContext'
 import { supabase } from '../supabaseClient'
 import styles from '../styles/dashboard.module.css'
+
+const BUSINESS_TYPE_LABELS = {
+  'self-employment': 'Self-employment',
+  'uk-property': 'UK property',
+  'foreign-property': 'Foreign property'
+}
 
 const PERIOD_LABELS = { week: 'This week', month: 'This month', quarter: 'This quarter', year: 'This tax year' }
 
@@ -46,6 +53,8 @@ const fmtDate = v => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: '
 
 export default function Dashboard() {
   const router = useRouter()
+  const capabilities = useDriverCapabilities()
+  const activeTypes = [...new Set((capabilities.businesses || []).map((b) => b.type_of_business))]
   const [view, setView] = useState('month')
   const [driver, setDriver] = useState(null)
   const [entries, setEntries] = useState([])
@@ -238,6 +247,15 @@ export default function Dashboard() {
               ) : hmrcConnected ? (
                 <>
                   <div className={styles.hmrcConnectedBadge}>✓ Connected</div>
+                  {activeTypes.length > 0 && (
+                    <div className={styles.hmrcTypes}>
+                      {activeTypes.map((t) => (
+                        <span key={t} className={styles.hmrcTypeChip}>
+                          {BUSINESS_TYPE_LABELS[t] || t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className={styles.hmrcManageRow}>
                     <span className={styles.hmrcNextDeadline}>Manage your MTD submissions</span>
                     <Link href="/hmrc" className={styles.hmrcManageLink}>Open →</Link>
