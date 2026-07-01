@@ -29,6 +29,14 @@
   text-transform: uppercase;
 }
 
+.sandboxNote {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #94a3b8;
+}
+
 .header h1 {
   margin: 0;
   font-size: clamp(2rem, 5vw, 3.2rem);
@@ -344,6 +352,75 @@
 .secondaryBtn {
   background: #e2e8f0;
   color: #0f172a;
+}
+
+/* ── Confirmation modal ── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirmModal {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+
+.confirmModal h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.confirmText {
+  margin: 0 0 18px;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirmRows {
+  display: grid;
+  gap: 1px;
+  background: #e2e8f0;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.confirmRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 16px;
+  background: #ffffff;
+}
+
+.confirmRow span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confirmRow strong {
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 12px;
 }
 
 .resultPanel {

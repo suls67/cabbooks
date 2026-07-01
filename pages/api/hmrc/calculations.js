@@ -6,6 +6,13 @@ import { supabase } from '../../../supabaseClient';
 const POLL_DELAY_MS = 2500;
 const POLL_ATTEMPTS = 5;
 
+// Sandbox: DEFAULT retrieve returns a canned validation error ("Final
+// confirmation… not provided") with no real figures. UK_SE_SAVINGS_EXAMPLE
+// returns a complete self-employment calculation with real tax figures and zero
+// errors — the right fit for a taxi driver. Trigger stays DEFAULT (just returns
+// a calculationId); only the retrieve calls use this scenario.
+const SANDBOX_CALC_RETRIEVE_SCENARIO = 'UK_SE_SAVINGS_EXAMPLE';
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -196,7 +203,7 @@ async function retrieveCalculation(req, res, context) {
       method: 'GET',
       headers: {
         Accept: 'application/vnd.hmrc.8.0+json',
-        'Gov-Test-Scenario': 'DEFAULT'
+        'Gov-Test-Scenario': SANDBOX_CALC_RETRIEVE_SCENARIO
       }
     },
     context
@@ -342,7 +349,7 @@ async function triggerCalculation(req, res, context) {
         method: 'GET',
         headers: {
           Accept: 'application/vnd.hmrc.8.0+json',
-          'Gov-Test-Scenario': 'DEFAULT'
+          'Gov-Test-Scenario': SANDBOX_CALC_RETRIEVE_SCENARIO
         }
       },
       context

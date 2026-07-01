@@ -7,6 +7,13 @@ import { refreshToken } from '../../../lib/hmrc/refreshToken';
 const HMRC_MAX_VALUE = 99999999999.99;
 const TAX_YEAR_PATTERN = /^\d{4}-\d{2}$/;
 
+// Sandbox: obligations must use the OPEN scenario + its canned business ID to get
+// open quarters. Must match pages/api/hmrc/obligations.js. DEFAULT returns Q1 as
+// fulfilled, which leaves no open period and 500s the submit. The cumulative
+// PUT/GET still use DEFAULT + the listed business ID (works regardless of ID).
+const SANDBOX_OBLIGATIONS_SCENARIO = 'OPEN';
+const SANDBOX_OPEN_BUSINESS_ID = 'XBIS12345678903';
+
 const isPeriodSubmitted = (period, submissionHistory) =>
   submissionHistory.some(
     (submission) =>
@@ -183,14 +190,14 @@ export default async function handler(req, res) {
     const businessId = firstBusiness?.businessId;
     const businessType = firstBusiness?.typeOfBusiness;
 
-    // get obligations
+    // get obligations (OPEN scenario + its canned business ID — see top of file)
     const obligationsResponse = await fetch(
-      `https://test-api.service.hmrc.gov.uk/obligations/details/${driver.nino}/income-and-expenditure?typeOfBusiness=self-employment&businessId=${businessId}`,
+      `https://test-api.service.hmrc.gov.uk/obligations/details/${driver.nino}/income-and-expenditure?typeOfBusiness=self-employment&businessId=${SANDBOX_OPEN_BUSINESS_ID}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
           Accept: 'application/vnd.hmrc.3.0+json',
-          'Gov-Test-Scenario': 'DEFAULT',
+          'Gov-Test-Scenario': SANDBOX_OBLIGATIONS_SCENARIO,
           ...fraudHeaders
         }
       }

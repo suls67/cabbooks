@@ -137,10 +137,13 @@ export default function HmrcObligations() {
   const submittedQuarters = Array.from(
     new Set(fulfilledPeriods.map((p) => getQuarterLabel(p, sortedPeriods)))
   )
-  const totals = submissionHistory.reduce(
-    (acc, s) => { acc.turnover += Number(s.turnover || 0); acc.expenses += Number(s.expenses || 0); return acc },
-    { turnover: 0, expenses: 0 }
-  )
+  const latestSubmission = submissionHistory.length
+    ? [...submissionHistory].sort((a, b) => new Date(b.period_end) - new Date(a.period_end))[0]
+    : null
+  const totals = {
+    turnover: Number(latestSubmission?.turnover || 0),
+    expenses: Number(latestSubmission?.expenses || 0),
+  }
   const latestSubmittedPeriod = fulfilledPeriods[fulfilledPeriods.length - 1] || null
   const earliestSubmittedPeriod = fulfilledPeriods[0] || null
 
@@ -293,84 +296,80 @@ export default function HmrcObligations() {
                 <h2>Current HMRC state</h2>
               </div>
 
-              {openPeriods.length > 0 && (
-                <div className={styles.periodSection}>
-                  <div className={styles.subHeader}>
-                    <p className={styles.sectionEyebrow}>Open</p>
-                    <h3>Ready to submit</h3>
-                    <p className={styles.sectionText}>
-                      The next open update is {nextQuarterLabel}. HMRC quarterly updates are
-                      cumulative — figures should cover everything from the start of the tax year up
-                      to the end of that quarter.
-                    </p>
-                  </div>
-
-                  <div className={styles.obligationList}>
-                    {openPeriods.map((period, index) => {
-                      const urgency = getDueDateUrgency(period.due)
-                      return (
-                        <div key={`${period.start}-${period.end}-${index}`} className={styles.obligationCard}>
-                          <div>
-                            <span className={styles.label}>Update period</span>
-                            <strong>{getQuarterLabel(period, sortedPeriods)}</strong>
-                          </div>
-                          <div>
-                            <span className={styles.label}>Period start</span>
-                            <strong>{formatDate(period.start)}</strong>
-                          </div>
-                          <div>
-                            <span className={styles.label}>Period end</span>
-                            <strong>{formatDate(period.end)}</strong>
-                          </div>
-                          <div>
-                            <span className={styles.label}>Due date</span>
-                            <strong>{formatDate(period.due)}</strong>
-                          </div>
-                          <div>
-                            <span className={styles.label}>Status</span>
-                            <strong className={urgency?.type === 'overdue' ? styles.overdueStatus : styles.openStatus}>
-                              {urgency?.type === 'overdue'
-                                ? `Overdue (${Math.abs(urgency.daysLeft)}d)`
-                                : urgency?.type === 'approaching'
-                                ? `Due in ${urgency.daysLeft}d`
-                                : isPeriodFulfilled(period, submissionHistory)
-                                ? 'Fulfilled'
-                                : 'Open'}
-                            </strong>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+              <div className={styles.periodSection}>
+                <div className={styles.subHeader}>
+                  <p className={styles.sectionEyebrow}>Quarterly updates</p>
+                  <h3>Your obligations</h3>
+                  <p className={styles.sectionText}>
+                    HMRC quarterly updates are cumulative — figures should cover everything from the
+                    start of the tax year up to the end of that quarter.
+                    {nextDuePeriod
+                      ? ` The next update due is ${nextQuarterLabel}.`
+                      : ' All quarterly updates have been submitted.'}
+                  </p>
                 </div>
-              )}
 
-              {fulfilledPeriods.length > 0 && (
-                <div className={styles.periodSection}>
-                  <div className={styles.subHeader}>
-                    <p className={styles.sectionEyebrow}>Fulfilled</p>
-                    <h3>Completed periods</h3>
-                  </div>
-                  <div className={styles.obligationList}>
-                    {fulfilledPeriods.map((period, index) => (
-                      <div key={`fulfilled-${period.start}-${period.end}-${index}`} className={`${styles.obligationCard} ${styles.obligationCardFulfilled}`}>
+                <div className={styles.obligationList}>
+                  {sortedPeriods.map((period, index) => {
+                    const fulfilled = isPeriodFulfilled(period, submissionHistory)
+                    const urgency = getDueDateUrgency(period.due)
+                    const isNextDue =
+                      nextDuePeriod &&
+                      period.start === nextDuePeriod.start &&
+                      period.end === nextDuePeriod.end
+                    return (
+                      <div
+                        key={`${period.start}-${period.end}-${index}`}
+                        className={`${styles.obligationCard} ${fulfilled ? styles.obligationCardFulfilled : ''} ${isNextDue ? styles.obligationCardActive : ''}`}
+                      >
                         <div>
                           <span className={styles.label}>Update period</span>
                           <strong>{getQuarterLabel(period, sortedPeriods)}</strong>
                         </div>
                         <div>
-                          <span className={styles.label}>Period</span>
-                          <strong>{formatDate(period.start)} — {formatDate(period.end)}</strong>
+                          <span className={styles.label}>Period start</span>
+                          <strong>{formatDate(period.start)}</strong>
+                        </div>
+                        <div>
+                          <span className={styles.label}>Period end</span>
+                          <strong>{formatDate(period.end)}</strong>
+                        </div>
+                        <div>
+                          <span className={styles.label}>Due date</span>
+                          <strong>{formatDate(period.due)}</strong>
                         </div>
                         <div>
                           <span className={styles.label}>Status</span>
-                          <strong className={styles.fulfilledStatus}>Fulfilled</strong>
+                          <strong
+                            className={
+                              fulfilled
+                                ? styles.fulfilledStatus
+                                : urgency?.type === 'overdue'
+                                ? styles.overdueStatus
+                                : styles.openStatus
+                            }
+                          >
+                            {fulfilled
+                              ? 'Submitted'
+                              : urgency?.type === 'overdue'
+                              ? `Overdue (${Math.abs(urgency.daysLeft)}d)`
+                              : urgency?.type === 'approaching'
+                              ? `Due in ${urgency.daysLeft}d`
+                              : 'Open'}
+                          </strong>
                         </div>
+                        {isNextDue && (
+                          <div className={styles.cardAction}>
+                            <Link href="/hmrc-submit" className={styles.nextStepLink}>
+                              Submit figures for {nextQuarterLabel}
+                            </Link>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    )
+                  })}
                 </div>
-              )}
+              </div>
 
               {/* Final declaration obligation */}
               {crystallisation && (
@@ -452,16 +451,6 @@ export default function HmrcObligations() {
                     No saved submission history was found in Supabase for this driver yet.
                   </div>
                 )}
-              </div>
-
-              <div className={styles.nextStep}>
-                <p className={styles.nextStepText}>
-                  When you&apos;re ready, move on to submitting cumulative turnover and expenses for
-                  {nextDuePeriod ? ` ${nextQuarterLabel}` : ' the next open period'}.
-                </p>
-                <Link href="/hmrc-submit" className={styles.nextStepLink}>
-                  Submit figures
-                </Link>
               </div>
             </div>
           )}
