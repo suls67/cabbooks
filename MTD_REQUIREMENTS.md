@@ -24,8 +24,8 @@ can you make a diagram with boxes
 The Making Tax Digital for Income Tax APIs that include the endpoints for the above functionality are:
 
 Business Details ✅
-Business Source Adjustable Summary 
-Individual Calculations
+Business Source Adjustable Summary ✅
+Individual Calculations 
 Individual Losses ✅
 Individuals Tax Liability Adjustments ✅
 Obligations
