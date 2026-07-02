@@ -11,7 +11,6 @@ export default function ConnectHmrc() {
   const [hmrcToken, setHmrcToken] = useState(null)
   const [status, setStatus] = useState({ type: '', text: '' })
   const [isLoading, setIsLoading] = useState(false)
-
   useEffect(() => {
     async function loadDriver() {
       try {
@@ -47,6 +46,31 @@ export default function ConnectHmrc() {
 
     loadDriver()
   }, [router])
+
+  // After a successful connect, sync the driver's business types from HMRC so
+  // the hub immediately shows the right features (idempotent — safe to re-run).
+  useEffect(() => {
+    if (!(router.isReady && router.query.status === 'success')) return
+    let cancelled = false
+    async function sync() {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken || cancelled) return
+      try {
+        await fetch('/api/hmrc/syncBusinesses', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        })
+      } catch {
+        // Non-blocking: the driver can still re-sync from the businesses page.
+      }
+    }
+    sync()
+    return () => {
+      cancelled = true
+    }
+  }, [router.isReady, router.query.status])
 
   const callbackStatus =
     router.isReady && router.query.status === 'success'
@@ -194,6 +218,7 @@ export default function ConnectHmrc() {
             </Link>
           </div>
         </div>
+
       </div>
     </div>
   )

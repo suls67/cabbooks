@@ -2,15 +2,18 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { getCurrentDriver } from '../lib/driverAuth'
+import { useDriver } from '../lib/driverContext'
 import { supabase } from '../supabaseClient'
 import styles from '../styles/hmrc-businesses.module.css'
 
 export default function HmrcBusinesses() {
   const router = useRouter()
+  const { capabilities, refreshBusinesses } = useDriver()
   const [driver, setDriver] = useState(null)
   const [businesses, setBusinesses] = useState([])
   const [status, setStatus] = useState({ type: '', text: '' })
   const [isLoading, setIsLoading] = useState(false)
+  const [busy, setBusy] = useState('')
 
   useEffect(() => {
     async function loadDriver() {
@@ -29,6 +32,61 @@ export default function HmrcBusinesses() {
 
     loadDriver()
   }, [router])
+
+  async function authFetch(url, options = {}) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    const accessToken = sessionData.session?.access_token
+    if (!accessToken) throw new Error('You need to be signed in to talk to HMRC.')
+    return fetch(url, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers
+      }
+    })
+  }
+
+  // Re-sync business types from HMRC (replaces HMRC-sourced rows; keeps manual).
+  async function handleResync() {
+    setStatus({ type: '', text: '' })
+    setBusy('resync')
+    try {
+      const response = await authFetch('/api/hmrc/syncBusinesses', { method: 'POST', body: JSON.stringify({}) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not sync businesses from HMRC.')
+      await refreshBusinesses()
+      setStatus({ type: 'success', text: `Synced ${data.synced} business type(s) from HMRC.` })
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not sync from HMRC.' })
+    } finally {
+      setBusy('')
+    }
+  }
+
+  // Enable/disable a manual property type (for drivers whose property isn't in
+  // the sandbox business list).
+  async function handleToggleProperty(type, enabled) {
+    setStatus({ type: '', text: '' })
+    setBusy(type)
+    try {
+      const response = await authFetch('/api/hmrc/driverBusinesses', {
+        method: enabled ? 'POST' : 'DELETE',
+        body: JSON.stringify({ typeOfBusiness: type })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not update your business types.')
+      await refreshBusinesses()
+      setStatus({
+        type: 'success',
+        text: `${type === 'uk-property' ? 'UK property' : 'Foreign property'} ${enabled ? 'enabled' : 'removed'}.`
+      })
+    } catch (error) {
+      setStatus({ type: 'error', text: error instanceof Error ? error.message : 'Could not update your business types.' })
+    } finally {
+      setBusy('')
+    }
+  }
 
   async function handleFetchBusinesses() {
     setStatus({ type: '', text: '' })
@@ -120,9 +178,65 @@ export default function HmrcBusinesses() {
               {isLoading ? 'Fetching businesses...' : 'Fetch businesses'}
             </button>
 
+            <Link href="/hmrc-business-details" className={styles.secondaryBtn}>
+              Accounting settings
+            </Link>
+
             <Link href="/hmrc" className={styles.secondaryBtn}>
               Back
             </Link>
+          </div>
+
+          <div className={styles.typesSection}>
+            <div className={styles.typesHeader}>
+              <div>
+                <p className={styles.sectionEyebrow}>Your business types</p>
+                <h2>What HMRC features you see</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={handleResync}
+                disabled={busy === 'resync' || !driver?.nino}
+              >
+                {busy === 'resync' ? 'Syncing...' : 'Re-sync from HMRC'}
+              </button>
+            </div>
+
+            <p className={styles.typesHint}>
+              We show only the HMRC features that apply to your business. Self-employment is detected
+              automatically. If you also let a property, enable it below.
+            </p>
+
+            <div className={styles.typeRow}>
+              <div>
+                <strong>Self-employment</strong>
+                <span className={styles.typeState}>
+                  {capabilities.hasSelfEmployment ? 'Active' : 'Not detected'}
+                </span>
+              </div>
+              <span className={styles.typeManaged}>Managed by HMRC</span>
+            </div>
+
+            <label className={styles.typeToggle}>
+              <input
+                type="checkbox"
+                checked={capabilities.hasUkProperty}
+                disabled={busy === 'uk-property'}
+                onChange={(e) => handleToggleProperty('uk-property', e.target.checked)}
+              />
+              <span>I let a UK property</span>
+            </label>
+
+            <label className={styles.typeToggle}>
+              <input
+                type="checkbox"
+                checked={capabilities.hasForeignProperty}
+                disabled={busy === 'foreign-property'}
+                onChange={(e) => handleToggleProperty('foreign-property', e.target.checked)}
+              />
+              <span>I let a foreign property</span>
+            </label>
           </div>
 
           {businesses.length > 0 && (

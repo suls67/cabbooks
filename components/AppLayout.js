@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { DriverContext } from '../lib/driverContext'
+import { deriveCapabilities } from '../lib/driverCapabilities'
 import styles from '../styles/layout.module.css'
 
 const PAGE_TITLES = {
@@ -16,11 +18,17 @@ const PAGE_TITLES = {
   '/hmrc-obligations': 'Obligations',
   '/hmrc-submit': 'Submit Update',
   '/hmrc-calculations': 'Tax Calculations',
+  '/hmrc-assist': 'Assist Report',
   '/hmrc-final': 'Final Declaration',
   '/hmrc-adjustments': 'Adjustments',
   '/hmrc-annual': 'Annual Summary',
   '/hmrc-income-summary': 'Income Summary',
   '/hmrc-businesses': 'Business Details',
+  '/hmrc-business-details': 'Business Details',
+  '/hmrc-property': 'Property Income',
+  '/hmrc-property-bsas': 'Property Adjustments',
+  '/hmrc-losses': 'Losses & Claims',
+  '/hmrc-tax-adjustments': 'Tax Liability Adjustments',
   '/profile': 'Profile',
 }
 
@@ -136,12 +144,31 @@ function getInitials(name) {
 export default function AppLayout({ children }) {
   const router = useRouter()
   const [driver, setDriver] = useState(null)
+  const [businesses, setBusinesses] = useState([])
+  const [loadingBusinesses, setLoadingBusinesses] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Re-reads the driver's stored business types (used after a sync or a manual
+  // toggle so the hub reflects changes without a full page reload).
+  const refreshBusinesses = useCallback(async (driverId) => {
+    if (!driverId) {
+      setBusinesses([])
+      return
+    }
+    const { data } = await supabase
+      .from('driver_businesses')
+      .select('id, business_id, type_of_business, trading_name, source')
+      .eq('driver_id', driverId)
+    setBusinesses(data || [])
+  }, [])
 
   useEffect(() => {
     async function loadDriver() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
+      if (!session) {
+        setLoadingBusinesses(false)
+        return
+      }
 
       const { data } = await supabase
         .from('drivers')
@@ -149,10 +176,26 @@ export default function AppLayout({ children }) {
         .eq('auth_user_id', session.user.id)
         .maybeSingle()
 
-      if (data) setDriver(data)
+      if (data) {
+        setDriver(data)
+        await refreshBusinesses(data.id)
+      }
+      setLoadingBusinesses(false)
     }
     loadDriver()
-  }, [])
+  }, [refreshBusinesses])
+
+  const capabilities = useMemo(() => deriveCapabilities(businesses), [businesses])
+  const driverContextValue = useMemo(
+    () => ({
+      driver,
+      businesses,
+      capabilities,
+      loading: loadingBusinesses,
+      refreshBusinesses: () => refreshBusinesses(driver?.id)
+    }),
+    [driver, businesses, capabilities, loadingBusinesses, refreshBusinesses]
+  )
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -177,6 +220,7 @@ export default function AppLayout({ children }) {
   }
 
   return (
+    <DriverContext.Provider value={driverContextValue}>
     <div className={styles.shell}>
       {/* Sidebar */}
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
@@ -267,5 +311,6 @@ export default function AppLayout({ children }) {
         })}
       </nav>
     </div>
+    </DriverContext.Provider>
   )
 }

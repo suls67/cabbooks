@@ -432,6 +432,7 @@ export default function HmrcCalculations() {
               <div className={styles.sectionHeader}>
                 <p className={styles.sectionEyebrow}>Existing</p>
                 <h2>Calculations for {taxYear}</h2>
+                <p className={styles.sandboxNote}>Sandbox only — rows below are canned test data, not your actual submissions.</p>
               </div>
 
               <div className={styles.tableWrapper}>

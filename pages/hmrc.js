@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { getCurrentDriver } from '../lib/driverAuth'
 import { sortPeriods } from '../lib/hmrcPeriods'
+import { useDriverCapabilities } from '../lib/driverContext'
 import { supabase } from '../supabaseClient'
 import styles from '../styles/hmrc.module.css'
 
@@ -24,6 +25,12 @@ export default function HmrcHome() {
   const [submissionHistory, setSubmissionHistory] = useState([])
   const [status, setStatus] = useState({ type: '', text: '' })
   const [isLoading, setIsLoading] = useState(true)
+  const [showAll, setShowAll] = useState(false)
+
+  const capabilities = useDriverCapabilities()
+  // Property features are hidden unless the driver has a property business (or
+  // has toggled "show all"). Self-employment features always show.
+  const showProperty = capabilities.hasProperty || showAll
 
   useEffect(() => {
     async function loadHmrcHome() {
@@ -217,6 +224,21 @@ export default function HmrcHome() {
             </div>
           </div>
 
+          {!capabilities.hasProperty && (
+            <div className={styles.featureToggleRow}>
+              <span className={styles.featureToggleText}>
+                Showing the features for your business type.
+              </span>
+              <button
+                type="button"
+                className={styles.featureToggleBtn}
+                onClick={() => setShowAll((prev) => !prev)}
+              >
+                {showAll ? 'Show fewer features' : 'Show all HMRC features'}
+              </button>
+            </div>
+          )}
+
           <div className={styles.taskGrid}>
             <div className={styles.taskCard}>
               <p className={styles.sectionEyebrow}>Sandbox setup</p>
@@ -227,6 +249,58 @@ export default function HmrcHome() {
               </p>
               <Link href="/hmrc-create-test-user" className={styles.taskLink}>
                 Create test user
+              </Link>
+            </div>
+
+            {showProperty && (
+              <div className={styles.taskCard}>
+                <p className={styles.sectionEyebrow}>Property</p>
+                <h2>Property income</h2>
+                <p>
+                  For drivers who also let out a UK property — submit rental income and expenses and
+                  set the property income allowance.
+                </p>
+                <Link href="/hmrc-property" className={styles.taskLink}>
+                  Open property income
+                </Link>
+              </div>
+            )}
+
+            {showProperty && (
+              <div className={styles.taskCard}>
+                <p className={styles.sectionEyebrow}>Property</p>
+                <h2>Property adjustments</h2>
+                <p>
+                  Generate a Business Source Adjustable Summary for your UK or foreign property,
+                  review the figures, and submit end-of-year accounting adjustments.
+                </p>
+                <Link href="/hmrc-property-bsas" className={styles.taskLink}>
+                  Open property adjustments
+                </Link>
+              </div>
+            )}
+
+            <div className={styles.taskCard}>
+              <p className={styles.sectionEyebrow}>Optional</p>
+              <h2>Losses &amp; claims</h2>
+              <p>
+                Record trading losses and choose how to relieve them — carry back, set sideways
+                against other income, or carry forward to future years.
+              </p>
+              <Link href="/hmrc-losses" className={styles.taskLink}>
+                Open losses &amp; claims
+              </Link>
+            </div>
+
+            <div className={styles.taskCard}>
+              <p className={styles.sectionEyebrow}>Optional</p>
+              <h2>Tax liability adjustments</h2>
+              <p>
+                Reduce this year&apos;s Income Tax, Class 4 NIC or Capital Gains Tax where current-year
+                losses are carried back to an earlier year.
+              </p>
+              <Link href="/hmrc-tax-adjustments" className={styles.taskLink}>
+                Open tax adjustments
               </Link>
             </div>
 
@@ -245,10 +319,23 @@ export default function HmrcHome() {
               <p className={styles.sectionEyebrow}>Step 2</p>
               <h2>Business details</h2>
               <p>
-                View the HMRC business records linked to this driver and confirm the business ID.
+                View the HMRC business records linked to this driver, confirm the business ID, and
+                set your accounting type, quarterly period type, and periods of account.
               </p>
               <Link href="/hmrc-businesses" className={styles.taskLink}>
                 View businesses
+              </Link>
+            </div>
+
+            <div className={styles.taskCard}>
+              <p className={styles.sectionEyebrow}>Step 2 · settings</p>
+              <h2>Accounting settings</h2>
+              <p>
+                Set your accounting type, quarterly period type, and periods of account for the tax
+                year. Confirm these before your final declaration.
+              </p>
+              <Link href="/hmrc-business-details" className={styles.taskLink}>
+                Open accounting settings
               </Link>
             </div>
 
@@ -325,6 +412,18 @@ export default function HmrcHome() {
 
             <div className={styles.taskCard}>
               <p className={styles.sectionEyebrow}>Step 9</p>
+              <h2>Assist report</h2>
+              <p>
+                Ask HMRC for targeted feedback on your calculation, review any messages in full, and
+                acknowledge that they have been seen.
+              </p>
+              <Link href="/hmrc-assist" className={styles.taskLink}>
+                Open Assist report
+              </Link>
+            </div>
+
+            <div className={styles.taskCard}>
+              <p className={styles.sectionEyebrow}>Step 10</p>
               <h2>Final declaration</h2>
               <p>
                 Submit your final declaration to HMRC — the equivalent of a Self Assessment tax

@@ -40,6 +40,7 @@ export default function HmrcSubmit() {
   const [status, setStatus] = useState({ type: '', text: '' })
   const [result, setResult] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [calculation, setCalculation] = useState(null)
   const [isCalculating, setIsCalculating] = useState(false)
 
@@ -93,10 +94,12 @@ export default function HmrcSubmit() {
     setAllPeriods(periods)
     setOpenPeriod(nextOpenPeriod || null)
 
-    const taxYear = deriveTaxYear(periods)
-    if (taxYear) setTaxYear(taxYear)
+    const derivedYear = deriveTaxYear(periods)
+    const taxYear = (derivedYear && Number(derivedYear.slice(0, 4)) >= 2025) ? derivedYear : '2025-26'
+    setTaxYear(taxYear)
 
-    if (taxYear) {
+    // Cumulative summaries only exist for 2025-26 onwards.
+    if (taxYear && Number(taxYear.slice(0, 4)) >= 2025) {
       setIsLoadingSummary(true)
       fetch(`/api/hmrc/submitIncome?taxYear=${encodeURIComponent(taxYear)}`, {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -105,6 +108,8 @@ export default function HmrcSubmit() {
         .then((d) => setCurrentHmrcSummary(d.noData ? null : d))
         .catch(() => setCurrentHmrcSummary(null))
         .finally(() => setIsLoadingSummary(false))
+    } else {
+      setCurrentHmrcSummary(null)
     }
 
     if (nextOpenPeriod) {
@@ -181,6 +186,14 @@ export default function HmrcSubmit() {
       return
     }
 
+    // All checks passed — ask the driver to confirm before sending to HMRC.
+    setShowConfirm(true)
+  }
+
+  async function confirmSubmit() {
+    setShowConfirm(false)
+    setStatus({ type: '', text: '' })
+    setResult(null)
     setIsSubmitting(true)
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -277,8 +290,22 @@ export default function HmrcSubmit() {
         ? Number(currentHmrcSummary.periodExpenses.consolidatedExpenses)
         : Object.values(currentHmrcSummary.periodExpenses || {}).reduce((s, v) => s + Number(v || 0), 0))
     : null
-  const previousTurnover = hmrcBaseTurnover ?? Number(previousSubmission?.turnover || (baselineRequired ? Number(openingTurnover) || 0 : 0))
-  const previousExpenses = hmrcBaseExpenses ?? Number(previousSubmission?.expenses || (baselineRequired ? Number(openingExpenses) || 0 : 0))
+  // Prefer Supabase (the real source of truth) over the HMRC cumulative GET.
+  // Under the sandbox DEFAULT scenario that GET returns canned/simulated figures
+  // that don't reflect real submissions, so it must not override Supabase. HMRC
+  // is only a last-resort fallback when no Supabase record and no baseline exist.
+  const previousTurnover =
+    previousSubmission?.turnover != null
+      ? Number(previousSubmission.turnover)
+      : baselineRequired
+        ? Number(openingTurnover) || 0
+        : hmrcBaseTurnover ?? 0
+  const previousExpenses =
+    previousSubmission?.expenses != null
+      ? Number(previousSubmission.expenses)
+      : baselineRequired
+        ? Number(openingExpenses) || 0
+        : hmrcBaseExpenses ?? 0
   const reviewTurnover = previousTurnover + enteredTurnover
   const reviewExpenses = previousExpenses + enteredExpenses
   const formatMoney = (value) =>
@@ -385,7 +412,7 @@ export default function HmrcSubmit() {
           </div>
 
           <div className={styles.hmrcSummaryCard}>
-            <p className={styles.sectionEyebrow}>Currently held by HMRC</p>
+            <p className={styles.sectionEyebrow}>Currently held by HMRC <span className={styles.sandboxNote}>(simulated — sandbox only)</span></p>
             {isLoadingSummary ? (
               <p className={styles.summaryLoading}>Loading HMRC summary...</p>
             ) : currentHmrcSummary ? (
@@ -535,6 +562,55 @@ export default function HmrcSubmit() {
               </Link>
             </div>
           </form>
+
+          {showConfirm && (
+            <div className={styles.backdrop} onClick={() => setShowConfirm(false)}>
+              <div className={styles.confirmModal} onClick={(e) => e.stopPropagation()}>
+                <h2>Confirm submission</h2>
+                <p className={styles.confirmText}>
+                  Please check these year-to-date figures. Once submitted to HMRC they replace any
+                  previous figures for {quarterLabel}.
+                </p>
+
+                <div className={styles.confirmRows}>
+                  <div className={styles.confirmRow}>
+                    <span>Update period</span>
+                    <strong>{quarterLabel}</strong>
+                  </div>
+                  <div className={styles.confirmRow}>
+                    <span>Tax year</span>
+                    <strong>{taxYear}</strong>
+                  </div>
+                  <div className={styles.confirmRow}>
+                    <span>Total income to submit</span>
+                    <strong>{formatMoney(reviewTurnover)}</strong>
+                  </div>
+                  <div className={styles.confirmRow}>
+                    <span>Total expenses to submit</span>
+                    <strong>{formatMoney(reviewExpenses)}</strong>
+                  </div>
+                </div>
+
+                <div className={styles.confirmActions}>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={confirmSubmit}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Confirm & submit'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => setShowConfirm(false)}
+                  >
+                    Go back
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {result && (
             <div className={styles.resultPanel}>

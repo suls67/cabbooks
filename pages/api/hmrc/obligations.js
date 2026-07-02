@@ -4,6 +4,13 @@ import { supabase } from '../../../supabaseClient';
 
 const HMRC_BASE = 'https://test-api.service.hmrc.gov.uk';
 
+// Sandbox: the obligations endpoint's OPEN test scenario returns four OPEN
+// quarterly obligations, but only for this specific canned business ID. DEFAULT
+// returns Q1 as already fulfilled, which blocks end-to-end testing. The 2018-19
+// dates are expected — the app shifts them to the current tax year on submit.
+const SANDBOX_OBLIGATIONS_SCENARIO = 'OPEN';
+const SANDBOX_OPEN_BUSINESS_ID = 'XBIS12345678903';
+
 function normaliseStatus(raw) {
   if (raw === 'F') return 'fulfilled';
   if (raw === 'O') return 'open';
@@ -55,8 +62,11 @@ export default async function handler(req, res) {
     );
 
     const businessData = await businessRes.json();
-    const businessId = businessData?.listOfBusinesses?.[0]?.businessId;
-    if (!businessId) throw new Error('No business found for this driver');
+    const listedBusinessId = businessData?.listOfBusinesses?.[0]?.businessId;
+    if (!listedBusinessId) throw new Error('No business found for this driver');
+
+    // The OPEN scenario only returns obligations for its own canned business ID.
+    const businessId = SANDBOX_OPEN_BUSINESS_ID;
 
     // Step 2: fetch quarterly + crystallisation obligations in parallel
     const [quarterlyRes, crystallisationRes] = await Promise.all([
@@ -66,7 +76,7 @@ export default async function handler(req, res) {
           headers: {
             Authorization: `Bearer ${hmrcToken}`,
             Accept: 'application/vnd.hmrc.3.0+json',
-            'Gov-Test-Scenario': 'DEFAULT'
+            'Gov-Test-Scenario': SANDBOX_OBLIGATIONS_SCENARIO
           }
         }
       ),

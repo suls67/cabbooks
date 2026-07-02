@@ -357,6 +357,23 @@
   margin-bottom: 12px;
 }
 
+.hmrcTypes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.hmrcTypeChip {
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
 .hmrcManageLink {
   font-size: 0.8125rem;
   font-weight: 500;

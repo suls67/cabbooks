@@ -13,7 +13,14 @@ export default function handler(req, res) {
       const clientId = process.env.HMRC_CLIENT_ID;
       const redirectUri = process.env.HMRC_REDIRECT_URI;
 
-      const authUrl = `https://test-api.service.hmrc.gov.uk/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=read:self-assessment write:self-assessment&state=${driver.id}`;
+      const scope = [
+        'read:self-assessment',
+        'write:self-assessment',
+        'read:self-assessment-assist',
+        'write:self-assessment-assist'
+      ].join(' ');
+
+      const authUrl = `https://test-api.service.hmrc.gov.uk/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&state=${driver.id}`;
 
       if (req.method === 'POST') {
         return res.status(200).json({ authUrl });
